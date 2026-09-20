@@ -26,7 +26,7 @@ jobs:
       - name: Validate branded web app assets
         run: |
           grep -q "FMCG by Alex" apps/marketplace-margin-calculator/web/index.html
-          grep -q "Bahasa Indonesia" apps/marketplace-margin-calculator/web/app.js
+          grep -q "Kalkulator Margin Marketplace Indonesia" apps/marketplace-margin-calculator/web/app.js
           grep -q "__FMCG_APP_SMOKE__" apps/marketplace-margin-calculator/web/app.js
 
   windows:
