@@ -145,17 +145,28 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            adb install -r apps/marketplace-margin-calculator/android/app/build/outputs/apk/debug/app-debug.apk
-            adb shell am start -W -n com.fmcgbyalex.marketplacemargin/.MainActivity
-            sleep 5
-            adb shell dumpsys activity activities | grep -q "com.fmcgbyalex.marketplacemargin"
-            adb shell uiautomator dump /sdcard/fmcg-window.xml
-            adb pull /sdcard/fmcg-window.xml /tmp/fmcg-window.xml
-            grep -Eiq "FMCG by Alex|Marketplace Margin Calculator" /tmp/fmcg-window.xml
-            if adb logcat -d | grep -E "FATAL EXCEPTION|AndroidRuntime.*FATAL" | grep -qi "fmcgbyalex"; then
-              echo "Fatal FMCG app runtime error detected"
+            set -eu
+            APK="apps/marketplace-margin-calculator/android/app/build/outputs/apk/debug/app-debug.apk"
+            PACKAGE="com.fmcgbyalex.marketplacemargin"
+            ACTIVITY="$PACKAGE/.MainActivity"
+            adb install -r "$APK"
+            adb logcat -c
+            adb shell am start -n "$ACTIVITY"
+            sleep 12
+            PID="$(adb shell pidof "$PACKAGE" | tr -d '\r')"
+            test -n "$PID"
+            adb shell dumpsys activity activities > /tmp/fmcg-activities.txt
+            grep -q "$PACKAGE/.MainActivity" /tmp/fmcg-activities.txt
+            adb shell dumpsys window windows > /tmp/fmcg-windows.txt
+            grep -q "$PACKAGE" /tmp/fmcg-windows.txt
+            adb shell dumpsys meminfo "$PACKAGE" > /tmp/fmcg-meminfo.txt
+            grep -q "$PACKAGE" /tmp/fmcg-meminfo.txt
+            adb logcat -d > /tmp/fmcg-logcat.txt
+            if grep -E "FATAL EXCEPTION|ANR in $PACKAGE|Process: $PACKAGE.*FATAL" /tmp/fmcg-logcat.txt; then
+              echo "Fatal Android runtime error detected"
               exit 1
             fi
+            echo "Android runtime smoke test passed for PID $PID"
       - name: Stage APK
         run: |
           mkdir -p ../out
