@@ -1,0 +1,13 @@
+name: FMCG reusable runner probe
+
+on:
+  workflow_call:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm reusable runner execution
+        run: |
+          echo "Reusable workflow runner is executing."
+          echo "Caller repository: $GITHUB_REPOSITORY"
