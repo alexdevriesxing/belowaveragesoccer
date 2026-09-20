@@ -92,12 +92,20 @@ jobs:
         env:
           APPLE_SIGNING_IDENTITY: "-"
         run: npx --yes @tauri-apps/cli@2 build --target universal-apple-darwin --bundles dmg
-      - name: Smoke-test compiled universal application
+      - name: Mount DMG and smoke-test packaged universal application
         run: |
-          BIN="$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -type f -path '*.app/Contents/MacOS/*' | head -n 1)"
+          DMG="$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg' | head -n 1)"
+          test -n "$DMG"
+          MOUNT_DIR="$(mktemp -d /tmp/fmcg-margin.XXXXXX)"
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MOUNT_DIR"
+          BIN="$(find "$MOUNT_DIR" -type f -path '*.app/Contents/MacOS/fmcg-marketplace-margin' | head -n 1)"
           test -n "$BIN"
-          lipo -info "$BIN"
+          lipo -info "$BIN" | tee /tmp/fmcg-lipo.txt
+          grep -q "x86_64" /tmp/fmcg-lipo.txt
+          grep -q "arm64" /tmp/fmcg-lipo.txt
+          codesign --verify --deep --strict "$(dirname "$(dirname "$(dirname "$BIN")")")"
           "$BIN" --smoke-test
+          hdiutil detach "$MOUNT_DIR"
       - name: Stage DMG
         run: |
           mkdir -p out
